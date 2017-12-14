@@ -337,6 +337,28 @@ public class FhirInstanceValidatorDstu3Test {
 	}
 
 	@Test
+	public void testValidateBundleWithNoType() throws Exception {
+		String vsContents = IOUtils.toString(FhirInstanceValidatorDstu3Test.class.getResourceAsStream("/dstu3/bundle-with-no-type.json"), "UTF-8");
+
+		ValidationResult output = myVal.validateWithResult(vsContents);
+		logResultsAndReturnNonInformationalOnes(output);
+		assertThat(output.getMessages().toString(), containsString("Element 'Bundle.type': minimum required = 1"));
+	}
+
+	/**
+	 * See #739
+	 */
+	@Test
+	public void testValidateMedicationIngredient() throws IOException {
+		String input = IOUtils.toString(FhirInstanceValidatorDstu3Test.class.getResourceAsStream("/dstu3/bug739.json"), Charsets.UTF_8);
+
+		ValidationResult results = myVal.validateWithResult(input);
+		List<SingleValidationMessage> outcome = logResultsAndReturnNonInformationalOnes(results);
+		assertThat(outcome.toString(), containsString("Element 'Medication.ingredient.item[x]': minimum required = 1"));
+
+	}
+
+	@Test
 	public void testValidateQuestionnaireResponse() throws IOException {
 		String input = IOUtils.toString(FhirInstanceValidatorDstu3Test.class.getResourceAsStream("/qr_jon.xml"));
 
@@ -855,11 +877,24 @@ public class FhirInstanceValidatorDstu3Test {
 
 	}
 
+	@Test
+	public void testGoal() {
+		Goal goal = new Goal();
+		goal.setSubject(new Reference("Patient/123"));
+		goal.setDescription(new CodeableConcept().addCoding(new Coding("http://foo","some other goal","")));
+		goal.setStatus(Goal.GoalStatus.INPROGRESS);
+
+		ValidationResult results = myVal.validateWithResult(goal);
+		List<SingleValidationMessage> outcome = logResultsAndReturnNonInformationalOnes(results);
+		assertEquals(0, outcome.size());
+	}
+
 	@AfterClass
 	public static void afterClassClearContext() {
 		myDefaultValidationSupport.flush();
 		myDefaultValidationSupport = null;
 		TestUtil.clearAllStaticFieldsForUnitTest();
 	}
+
 
 }
